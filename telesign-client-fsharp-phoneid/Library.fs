@@ -7,6 +7,7 @@ open System.Net.Http
 open System.Net.Http.Headers
 open System.Security.Cryptography
 open System.Text
+open System.Threading
 open System.Threading.Tasks
 
 module PhoneID =
@@ -73,16 +74,18 @@ module PhoneID =
 
         requestMessage
 
-    let telesignResponse (request: HttpRequestMessage) : Task<string> =
-        let client = new HttpClient()
-
+    let telesignResponse (request: HttpRequestMessage) (client: HttpClient) (ct: CancellationToken) : Task<string> =
         task {
-            let! response = client.SendAsync(request).ConfigureAwait(false)
+            let! response =
+                client
+                    .SendAsync(request, ct)
+                    .ConfigureAwait(false)
+
             let statusCode = response.StatusCode
 
             return!
                 if statusCode = HttpStatusCode.OK then
-                    response.Content.ReadAsStringAsync()
+                    response.Content.ReadAsStringAsync(ct)
                 else
                     Task.FromResult String.Empty
         }
